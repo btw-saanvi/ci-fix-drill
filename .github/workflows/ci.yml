@@ -7,20 +7,21 @@ on:
     branches: [main]
 
 jobs:
-  install:
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+      
+      # Fix: The previous workflow used npm install, which can modify package-lock.json.
+      # We now use npm ci to ensure a clean, reproducible installation of dependencies.
       - name: Install dependencies
-        run: npm install   # BUG 1 — should be npm ci
+        run: npm ci
 
-  test:
-    runs-on: ubuntu-latest
-    # BUG 2 — missing needs: install, so test runs in parallel with install
-    # BUG 3 — no checkout or npm ci step, so node_modules is empty on this fresh machine
-    steps:
+      # Fix: The previous workflow had a separate 'test' job that lacked 'needs: install' and a checkout step.
+      # By combining install and test into one sensible sequential job, we ensure tests
+      # run only after dependencies are successfully installed and available in the workspace.
       - name: Run tests
         run: npm test
